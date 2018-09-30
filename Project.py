@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 import os
 
 # pd.set_option('display.height', 1000)
@@ -9,8 +10,8 @@ pd.set_option('display.max_columns', 15)
 pd.set_option('display.width', 1000)
 
 # GET the data using panda
-global_SES = pd.read_csv("Data/GlobalSES.csv")
-happiness_df = pd.read_csv("Data/Happiness_2017.csv")
+global_SES = pd.read_csv("Data/GlobalSES.csv", index_col=['country'])
+happiness_df = pd.read_csv("Data/Happiness_2017.csv", index_col=['Country'])
 
 # General Variables
 quit_application = False
@@ -21,8 +22,13 @@ high_class_countries = {}
 middle_class_countries = {}
 low_class_countries = {}
 happiness_rank = {}
-
 avg_data_per_year = {}
+
+high_five_country_ses = {}
+middle_five_country_ses = {}
+low_five_country_ses = {}
+
+high_country_happiness = {}
 
 # Average SES
 all_avg_ses = 0
@@ -45,9 +51,17 @@ middle_avg_edu = 0
 high_avg_edu = 0
 yearly_avg_edu = 0
 
+# Average Happiness
+all_avg_happiness = 0
+low_avg_happiness = 0
+middle_avg_happiness = 0
+high_avg_happiness = 0
+
 
 # Misc
-
+low_class_counter = 0
+middle_class_counter = 0
+high_class_counter = 0
 
 # FUNCTIONS
 # COUNT and PRINT average SES
@@ -88,9 +102,34 @@ def yearly_avg_table(yearly_list):
     print("{:<5} {:<9} {:<12} {:<8}".format('Year', 'SES', 'GDP', 'Education Average'))
     for year in yearly_list:
         print("{:<5} {:<9,.2f} {:<12,.2f} {:<8,.2f}".format(year, yearly_list[year]['SES'],
-                                                              yearly_list[year]['GDPPC'],
-                                                              yearly_list[year]['Edu']))
+                                                            yearly_list[year]['GDPPC'],
+                                                            yearly_list[year]['Edu']))
     print()
+
+
+def top_each_class(country_list, cls, amount):
+    i = 0
+    print("{:<20} {:<6} {:<10} {:<12} {:<8}".format('Country', 'SES', 'Happiness', 'GDP', 'Education Average'))
+    if cls == 'low':
+        sorted_names = sorted(country_list, key=lambda x: country_list[x])
+    else:
+        sorted_names = sorted(country_list, key=lambda x: country_list[x], reverse=True)
+    for country in sorted_names:
+        if i < amount:
+            print("{:<20} {:<6,.2f} {:<10,.2f} {:<12,.2f} {:<8,.2f}".format(country, country_list[country],
+                                                                            happiness_df['Happiness.Score'].loc[
+                                                                                country],
+                                                                            global_SES.gdppc[
+                                                                                (global_SES.year >= 2010)].loc[country],
+                                                                            global_SES.yrseduc[
+                                                                                (global_SES.year >= 2010)].loc[
+                                                                                country]))
+            i += 1
+    print()
+
+
+def clear_terminal():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 
 ''' How to do in Pandas
@@ -133,7 +172,13 @@ for row in open("Data/GlobalSES.csv"):
             class_level = "Low"
             if country not in low_class_countries and year == 2010:
                 low_class_countries[country] = {"SES": ses, "GDPPC": gdppc, "Edu": years_education}
-        while year >= 1880 and year <= 2010:
+        if country not in high_five_country_ses and year == 2010 and class_level == 'High':
+            high_five_country_ses[country] = ses
+        if country not in middle_five_country_ses and year == 2010 and class_level == 'Middle':
+            middle_five_country_ses[country] = ses
+        if country not in low_five_country_ses and year == 2010 and class_level == 'Low':
+            low_five_country_ses[country] = ses
+        while 1880 <= year <= 2010:
             if year not in avg_data_per_year:
                 avg_data_per_year[year] = {'SES': 0, 'GDPPC': 0, 'Edu': 0}
             avg_data_per_year[year]['SES'] += ses
@@ -161,9 +206,36 @@ for row in open("Data/Happiness_2017.csv"):
             happiness_rank[country] = {"Rank": rank, 'Happiness': round(happiness_score, 2), 'GDP': round(gdp, 2),
                                        "LifeExp": round(life_expectancy, 2), "Freedom": round(freedom, 2),
                                        "Generosity": round(generosity, 2), "GovtTrust": round(govt_trust, 2)}
+        if country in high_class_countries:
+            high_avg_happiness += happiness_score
+            high_class_counter += 1
+        if country in middle_class_countries:
+            middle_avg_happiness += happiness_score
+            middle_class_counter += 1
+        if country in low_class_countries:
+            low_avg_happiness += happiness_score
+            low_class_counter += 1
+        all_avg_happiness += happiness_score
+all_avg_happiness = all_avg_happiness / len(happiness_rank)
+high_avg_happiness = high_avg_happiness / high_class_counter
+middle_avg_happiness = middle_avg_happiness / middle_class_counter
+low_avg_happiness = low_avg_happiness / low_class_counter
 
-# for country in happiness_rank:
-#    print(country, happiness_rank[country])
+#print(high_avg_happiness,middle_avg_happiness,low_avg_happiness)
+
+# Make a dataset:
+height = [low_avg_happiness, middle_avg_happiness, high_avg_happiness]
+bars = ('A', 'B', 'C')
+y_pos = np.arange(len(bars))
+
+# Create bars
+plt.bar(y_pos, height)
+
+# Create names on the x-axis
+plt.xticks(y_pos, bars)
+
+# Show graphic
+#plt.show()
 
 # Scatter plot from Happiness dataset, comparing Happiness score v Life expectancy
 # happiness_df.plot.scatter(x='Happiness.Score', y='Health..Life.Expectancy.')
@@ -188,9 +260,10 @@ while not quit_application:
                     "2. SES\n"
                     "3. GDP per capita\n"
                     "4. Years of education\n"
+                    "5. Top countries in each class\n"
                     "0. Quit program\n"
                     "> ")
-    os.system('cls')
+    clear_terminal()
     # PRINT the data in a table like structure
     while welcome == '1':
         command = input("Please type your selection number\n"
@@ -201,7 +274,7 @@ while not quit_application:
                         "5. Yearly stats for all countries\n"
                         "0. Back to main menu\n"
                         "> ")
-        os.system('cls')
+        clear_terminal()
         if command == '1':
             countries_table(all_countries_list)
         elif command == '2':
@@ -225,7 +298,7 @@ while not quit_application:
                         "4. Average high class countries\n"
                         "0. Back to main menu\n"
                         "> ")
-        os.system('cls')
+        clear_terminal()
         if command == '1':
             cls = 'all'
             count_avg_ses(all_countries_list, all_avg_ses, cls)
@@ -251,7 +324,7 @@ while not quit_application:
                         "4. Average high class countries\n"
                         "0. Back to main menu\n"
                         "> ")
-        os.system('cls')
+        clear_terminal()
         if command == '1':
             cls = 'all'
             count_avg_gdp(all_countries_list, all_avg_gdp, cls)
@@ -277,7 +350,7 @@ while not quit_application:
                         "4. Average high class countries\n"
                         "0. Back to main menu\n"
                         "> ")
-        os.system('cls')
+        clear_terminal()
         if command == '1':
             cls = 'all'
             count_avg_edu(all_countries_list, all_avg_edu, cls)
@@ -294,13 +367,40 @@ while not quit_application:
             break
         else:
             print("Your input is invalid")
+    while welcome == '5':
+        command = input("Please type your selection number\n"
+                        "1. Low Class country\n"
+                        "2. Middle Class country\n"
+                        "3. High Class country\n"
+                        "0. Back to main menu\n"
+                        "> ")
+        clear_terminal()
+        if command == '1':
+            print("How many countries do you want to display? ")
+            amount = int(input("> "))
+            cls = 'low'
+            top_each_class(low_five_country_ses, cls, amount)
+        elif command == '2':
+            print("How many countries do you want to display? ")
+            amount = int(input("> "))
+            cls = 'middle'
+            top_each_class(middle_five_country_ses, cls, amount)
+        elif command == '3':
+            print("How many countries do you want to display? ")
+            amount = int(input("> "))
+            cls = 'high'
+            top_each_class(high_five_country_ses, cls, amount)
+        elif command == '0':
+            break
+        else:
+            print("Your input is invalid")
     # Invalid input
     if welcome != '1' and welcome != '2' and welcome != '3' and welcome != '4' and welcome != '5' and welcome != '0':
-        os.system('cls')
+        clear_terminal()
         print("Your input is invalid")
     # QUIT the program
     if welcome == '0':
-        os.system('cls')
+        clear_terminal()
         print("Thank you for using this program")
         quit_application = True
         break
