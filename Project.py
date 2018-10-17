@@ -3,9 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import os
+import csv
 
-# pd.set_option('display.height', 1000)
-# pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 15)
 pd.set_option('display.width', 1000)
 
@@ -57,11 +56,11 @@ low_avg_happiness = 0
 middle_avg_happiness = 0
 high_avg_happiness = 0
 
-
 # Misc
 low_class_counter = 0
 middle_class_counter = 0
 high_class_counter = 0
+
 
 # FUNCTIONS
 # COUNT and PRINT average SES
@@ -132,14 +131,6 @@ def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-''' How to do in Pandas
-# for country in country_list:
-#     if country not in countries_with_class:
-#         countries_with_class[country] = global_SES['class'][(global_SES.country == country) & (global_SES.year == 2010)]
-# for key in countries_with_class:
-#     print(key, countries_with_class[key].to_string(header=None, index=None))
-'''
-
 # DATA CLEANING and data wrangling in Python for SES
 is_first_line = True
 for row in open("Data/GlobalSES.csv"):
@@ -157,8 +148,6 @@ for row in open("Data/GlobalSES.csv"):
         # CLEAN -- Change C?te d'Ivoire to Ivory Coast
         if country == "C?te d'Ivoire":
             country = "Ivory Coast"
-        if country not in all_countries_list and year == 2010:
-            all_countries_list[country] = {"SES": ses, "GDPPC": gdppc, "Edu": years_education}
         # CLEAN -- Change the description to make it more neat and store the require values in a dictionary
         if class_level == "High(core)":
             class_level = "High"
@@ -172,6 +161,8 @@ for row in open("Data/GlobalSES.csv"):
             class_level = "Low"
             if country not in low_class_countries and year == 2010:
                 low_class_countries[country] = {"SES": ses, "GDPPC": gdppc, "Edu": years_education}
+        if country not in all_countries_list and year == 2010:
+            all_countries_list[country] = {"SES": round(ses,2), "GDPPC": round(gdppc,2), "Edu": round(years_education,2), "Class": class_level}
         if country not in high_five_country_ses and year == 2010 and class_level == 'High':
             high_five_country_ses[country] = ses
         if country not in middle_five_country_ses and year == 2010 and class_level == 'Middle':
@@ -202,6 +193,13 @@ for row in open("Data/Happiness_2017.csv"):
         freedom = float(values[8])
         generosity = float(values[9])
         govt_trust = float(values[10])
+        # CLEAN
+        if country == 'Hong Kong S.A.R. China':
+            country = 'Hong Kong'
+        elif country == 'Taiwan Province of China':
+            country = 'Taiwan'
+        elif country == 'Palestinian Territories':
+            country = 'Palestine'
         if country not in happiness_rank:
             happiness_rank[country] = {"Rank": rank, 'Happiness': round(happiness_score, 2), 'GDP': round(gdp, 2),
                                        "LifeExp": round(life_expectancy, 2), "Freedom": round(freedom, 2),
@@ -221,39 +219,27 @@ high_avg_happiness = high_avg_happiness / high_class_counter
 middle_avg_happiness = middle_avg_happiness / middle_class_counter
 low_avg_happiness = low_avg_happiness / low_class_counter
 
-#print(high_avg_happiness,middle_avg_happiness,low_avg_happiness)
+# Create a new csv file of clean data for SES data set and Happiness data set
+ses_output = open('clean_SES_data.csv', 'w', newline='')
+ses_writer = csv.writer(ses_output)
+ses_writer.writerow(['Country', 'SES', 'GDP per capita', 'Average Education Years', 'Class Level'])
+for key in sorted(all_countries_list):
+    ses_writer.writerow(
+        [key, all_countries_list[key]['SES'], all_countries_list[key]['GDPPC'], all_countries_list[key]['Edu'],
+         all_countries_list[key]['Class']])
 
-# Make a dataset:
-height = [low_avg_happiness, middle_avg_happiness, high_avg_happiness]
-bars = ('A', 'B', 'C')
-y_pos = np.arange(len(bars))
+# Create a new csv file of clean data for Happiness data set
+ses_writer.writerow([])
+ses_writer.writerow(
+    ['Country', 'Rank', 'Happiness Score', 'GDP per capita', 'Life Expectancy', 'Freedom Score', 'Generosity Score',
+     'Goverment Trust'])
+for key in happiness_rank:
+    ses_writer.writerow(
+        [key, happiness_rank[key]['Rank'], happiness_rank[key]['Happiness'], happiness_rank[key]['GDP'],
+         happiness_rank[key]['LifeExp'], happiness_rank[key]['Freedom'], happiness_rank[key]['Generosity'],
+         happiness_rank[key]['GovtTrust']])
 
-# Create bars
-plt.bar(y_pos, height)
-
-# Create names on the x-axis
-plt.xticks(y_pos, bars)
-
-# Show graphic
-#plt.show()
-
-# Scatter plot from Happiness dataset, comparing Happiness score v Life expectancy
-# happiness_df.plot.scatter(x='Happiness.Score', y='Health..Life.Expectancy.')
-# plt.suptitle('Test Title')
-# plt.xlabel('Happiness')
-# plt.ylabel('Life Expectancy')
-# plt.show()
-
-# Scatter plot from Happiness dataset, comparing Happiness score v GDP
-# happiness_df.plot.scatter(x='Happiness.Score', y='Economy..GDP.per.Capita.')
-# plt.suptitle('Test Title')
-# plt.xlabel('Happiness')
-# plt.ylabel('GDP per Capita')
-# plt.show()
-
-# global_SES.plot.scatter(x='gdppc', y='yrseduc', marker='^')
-# plt.show()
-
+# Main Program
 while not quit_application:
     welcome = input("Please type your selection number\n"
                     "1. Print Table for countries\n"
@@ -261,6 +247,7 @@ while not quit_application:
                     "3. GDP per capita\n"
                     "4. Years of education\n"
                     "5. Top countries in each class\n"
+                    "6. Output a chart\n"
                     "0. Quit program\n"
                     "> ")
     clear_terminal()
@@ -377,25 +364,87 @@ while not quit_application:
         clear_terminal()
         if command == '1':
             print("How many countries do you want to display? ")
-            amount = int(input("> "))
-            cls = 'low'
-            top_each_class(low_five_country_ses, cls, amount)
+            amount = input("> ")
+            if amount.isdigit():
+                if 0 <= int(amount) <= 10:
+                    cls = 'low'
+                    top_each_class(low_five_country_ses, cls, int(amount))
+                else:
+                    clear_terminal()
+                    print("Please input between 1 - 10")
+            else:
+                clear_terminal()
+                print('Input invalid')
         elif command == '2':
             print("How many countries do you want to display? ")
-            amount = int(input("> "))
-            cls = 'middle'
-            top_each_class(middle_five_country_ses, cls, amount)
+            amount = input("> ")
+            if amount.isdigit():
+                if 0 <= int(amount) <= 10:
+                    cls = 'middle'
+                    top_each_class(middle_five_country_ses, cls, int(amount))
+                else:
+                    clear_terminal()
+                    print("Please input between 1 - 10")
+            else:
+                clear_terminal()
+                print('Input invalid')
         elif command == '3':
             print("How many countries do you want to display? ")
-            amount = int(input("> "))
-            cls = 'high'
-            top_each_class(high_five_country_ses, cls, amount)
+            amount = input("> ")
+            if amount.isdigit():
+                if 0 <= int(amount) <= 10:
+                    cls = 'high'
+                    top_each_class(high_five_country_ses, cls, int(amount))
+                else:
+                    clear_terminal()
+                    print('Please input between 1 - 10')
+            else:
+                clear_terminal()
+                print('Input invalid')
         elif command == '0':
             break
         else:
+            clear_terminal()
             print("Your input is invalid")
+    while welcome == '6':
+        command = input("Please select chart you want to output\n"
+                        "1. GDP vs Education\n"
+                        "2. SES vs Education\n"
+                        "3. Happiness vs Life expectancy\n"
+                        "4. Happiness vs GDP per capita\n"
+                        "0. Back to main menu\n"
+                        "> ")
+        clear_terminal()
+        if command == '1':
+            global_SES.plot.scatter(x='gdppc', y='yrseduc')
+            plt.suptitle('GDP vs Education')
+            plt.xlabel('GDP per capita')
+            plt.ylabel('Average years of education')
+            plt.show()
+        if command == '2':
+            global_SES.plot.scatter(x='ses', y='yrseduc')
+            plt.suptitle('SES vs Education')
+            plt.xlabel('Social Economic Status')
+            plt.ylabel('Average years of education')
+            plt.show()
+        if command == '3':
+            # Scatter plot from Happiness dataset, comparing Happiness score v Life expectancy
+            happiness_df.plot.scatter(x='Happiness.Score', y='Health..Life.Expectancy.')
+            plt.suptitle('Happiness vs Life expectancy')
+            plt.xlabel('Happiness')
+            plt.ylabel('Life Expectancy')
+            plt.show()
+        if command == '4':
+            # Scatter plot from Happiness dataset, comparing Happiness score v GDP
+            happiness_df.plot.scatter(x='Happiness.Score', y='Economy..GDP.per.Capita.')
+            plt.suptitle('Happiness vs GDP per capita')
+            plt.xlabel('Happiness')
+            plt.ylabel('GDP per capita')
+            plt.show()
+        elif command == '0':
+            break
     # Invalid input
-    if welcome != '1' and welcome != '2' and welcome != '3' and welcome != '4' and welcome != '5' and welcome != '0':
+    if welcome != '1' and welcome != '2' and welcome != '3' and welcome != '4' and welcome != '5' and welcome != '6' and welcome != '0':
         clear_terminal()
         print("Your input is invalid")
     # QUIT the program
@@ -404,3 +453,38 @@ while not quit_application:
         print("Thank you for using this program")
         quit_application = True
         break
+
+'''
+For future project
+
+# Make a dataset:
+# height = [low_avg_happiness, middle_avg_happiness, high_avg_happiness]
+# bars = ('A', 'B', 'C')
+# y_pos = np.arange(len(bars))
+
+# Create bars
+# plt.bar(y_pos, height)
+
+# Create names on the x-axis
+# plt.xticks(y_pos, bars)
+
+# Show graphic
+# plt.show()
+
+# Scatter plot from Happiness dataset, comparing Happiness score v Life expectancy
+# happiness_df.plot.scatter(x='Happiness.Score', y='Health..Life.Expectancy.')
+# plt.suptitle('Test Title')
+# plt.xlabel('Happiness')
+# plt.ylabel('Life Expectancy')
+# plt.show()
+
+# Scatter plot from Happiness dataset, comparing Happiness score v GDP
+# happiness_df.plot.scatter(x='Happiness.Score', y='Economy..GDP.per.Capita.')
+# plt.suptitle('Test Title')
+# plt.xlabel('Happiness')
+# plt.ylabel('GDP per Capita')
+# plt.show()
+
+# global_SES.plot.scatter(x='gdppc', y='yrseduc', marker='^')
+# plt.show()
+'''
