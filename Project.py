@@ -145,9 +145,9 @@ for row in open("Data/GlobalSES.csv"):
         class_level = values[5]
         gdppc = float(values[6])
         years_education = float(values[7])
-        # CLEAN -- Change C?te d'Ivoire to Ivory Coast
-        if country == "C?te d'Ivoire":
-            country = "Ivory Coast"
+        # CLEAN -- IF there are unrecognized character in the Country Name, it will be skipped
+        if not country.isalpha():
+            continue
         # CLEAN -- Change the description to make it more neat and store the require values in a dictionary
         if class_level == "High(core)":
             class_level = "High"
@@ -416,26 +416,28 @@ while not quit_application:
                         "> ")
         clear_terminal()
         if command == '1':
+            # Scatter plot comparing GDP v Years of Education
             global_SES.plot.scatter(x='gdppc', y='yrseduc')
             plt.suptitle('GDP vs Education')
             plt.xlabel('GDP per capita')
             plt.ylabel('Average years of education')
             plt.show()
         if command == '2':
+            # Scatter plot comparing SES v Years of Education
             global_SES.plot.scatter(x='ses', y='yrseduc')
             plt.suptitle('SES vs Education')
             plt.xlabel('Social Economic Status')
             plt.ylabel('Average years of education')
             plt.show()
         if command == '3':
-            # Scatter plot from Happiness dataset, comparing Happiness score v Life expectancy
+            # Scatter plot comparing Happiness score v Life expectancy
             happiness_df.plot.scatter(x='Happiness.Score', y='Health..Life.Expectancy.')
             plt.suptitle('Happiness vs Life expectancy')
             plt.xlabel('Happiness')
             plt.ylabel('Life Expectancy')
             plt.show()
         if command == '4':
-            # Scatter plot from Happiness dataset, comparing Happiness score v GDP
+            # Scatter plot comparing Happiness score v GDP
             happiness_df.plot.scatter(x='Happiness.Score', y='Economy..GDP.per.Capita.')
             plt.suptitle('Happiness vs GDP per capita')
             plt.xlabel('Happiness')
