@@ -4,6 +4,7 @@ import seaborn as sns
 import numpy as np
 import os
 import csv
+from sklearn.tree import DecisionTreeRegressor
 
 pd.set_option('display.max_columns', 15)
 pd.set_option('display.width', 1000)
@@ -248,6 +249,7 @@ while not quit_application:
                     "4. Years of education\n"
                     "5. Top countries in each class\n"
                     "6. Output a chart\n"
+                    "7. Prediction\n"
                     "0. Quit program\n"
                     "> ")
     clear_terminal()
@@ -445,8 +447,22 @@ while not quit_application:
             plt.show()
         elif command == '0':
             break
+    while welcome == '7':
+        score = happiness_df['Happiness.Score']
+        data_features = ['Economy..GDP.per.Capita.', 'Health..Life.Expectancy.', 'Freedom', 'Generosity',
+                         'Trust..Government.Corruption.', 'Dystopia.Residual']
+        columns = happiness_df[data_features]
+        data_model = DecisionTreeRegressor(random_state=1)
+        data_model.fit(columns, score)
+        print("Making predictions for the following top ten countries happiness score:")
+        print(columns.head(10))
+        print("The predictions are")
+        print(data_model.predict(columns.head(10)))
+        print()
+        # Prediction
+        break
     # Invalid input
-    if welcome != '1' and welcome != '2' and welcome != '3' and welcome != '4' and welcome != '5' and welcome != '6' and welcome != '0':
+    if welcome != '1' and welcome != '2' and welcome != '3' and welcome != '4' and welcome != '5' and welcome != '6' and welcome != '7' and welcome != '0':
         clear_terminal()
         print("Your input is invalid")
     # QUIT the program
